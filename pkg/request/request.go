@@ -43,9 +43,9 @@ type Response struct {
 	ContentLength   int
 	ContentType     string
 	Title           string
-	IPAddress       string
 	Body            string
 	HeaderString    string
+	IPAddress       []string
 	HeadersOriginal [][2]string
 	http.Response
 }
@@ -113,8 +113,6 @@ func (w worker) request(requestProperties RequestProperties) Result {
 		responseTime = float64(time.Since(Timer).Seconds())
 	}
 
-	ipAddress, _ := net.LookupIP(response.Request.URL.Hostname())
-
 	buffer := new(bytes.Buffer)
 	buffer.ReadFrom(httpRequest.Body)
 
@@ -142,7 +140,7 @@ func (w worker) request(requestProperties RequestProperties) Result {
 			Request:         *httpRequest,
 		},
 		Response: Response{
-			IPAddress:     fmt.Sprintf("%v", ipAddress)[1 : len(ipAddress)-1],
+			IPAddress:     GetIPAddresses(response.Request.URL.Hostname()),
 			HeaderString:  headersToStr(response.Header),
 			Title:         GetHTMLTitle(bodyString),
 			ContentType:   response.Header.Get("content-type"),
@@ -201,6 +199,16 @@ func setClient(option *ClientProperties) *http.Client {
 		},
 	}
 	return client
+}
+
+// Get a list of IP addresses that the hostname resolves to
+func GetIPAddresses(hostname string) []string {
+	var lst []string
+	ips, _ := net.LookupIP(hostname)
+	for _, i := range ips {
+		lst = append(lst, i.String())
+	}
+	return lst
 }
 
 // Setup the post data used within the request (if any)
